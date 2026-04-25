@@ -1,421 +1,279 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-<title>貪食蛇 Snake Pro</title>
-<link rel="manifest" href="manifest.json" />
-<meta name="theme-color" content="#0f172a" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Snake Neon Pro</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f172a">
 
 <style>
-* {
-  box-sizing: border-box;
-  -webkit-tap-highlight-color: transparent;
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{
+  font-family:sans-serif;
+  background:radial-gradient(circle at top,#1e293b,#020617);
+  color:white;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:100vh;
 }
-
-body {
-  margin: 0;
-  min-height: 100vh;
-  background: radial-gradient(circle at top, #1e293b, #020617);
-  color: #fff;
-  font-family: Arial, sans-serif;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  overflow: hidden;
+.app{
+  width:100%;
+  max-width:420px;
+  padding:16px;
+  text-align:center;
 }
-
-.app {
-  width: 100%;
-  max-width: 430px;
-  padding: 16px;
-  text-align: center;
+h1{font-size:26px;margin-bottom:10px}
+.glass{
+  background:rgba(255,255,255,0.08);
+  backdrop-filter:blur(10px);
+  border-radius:14px;
+  padding:10px;
+  margin-bottom:10px;
 }
-
-h1 {
-  margin: 8px 0;
-  font-size: 30px;
+.stats{display:flex;gap:8px}
+.stats div{flex:1}
+canvas{
+  width:100%;
+  max-width:360px;
+  height:360px;
+  background:#020617;
+  border:3px solid #38bdf8;
+  border-radius:16px;
+  margin:10px auto;
+  display:block;
+  box-shadow:0 0 20px #38bdf8;
 }
-
-.stats {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  margin: 12px 0;
+.controls{display:flex;gap:8px;margin-top:10px}
+button{
+  flex:1;
+  padding:10px;
+  border:none;
+  border-radius:10px;
+  font-weight:bold;
+  background:#2563eb;
+  color:white;
 }
-
-.card {
-  flex: 1;
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 14px;
-  padding: 10px;
+button:active{transform:scale(0.95)}
+.colors{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-top:10px;
 }
-
-.card span {
-  display: block;
-  font-size: 13px;
-  color: #94a3b8;
-}
-
-.card strong {
-  font-size: 22px;
-}
-
-canvas {
-  width: min(92vw, 390px);
-  height: min(92vw, 390px);
-  background: #020617;
-  border: 3px solid #38bdf8;
-  border-radius: 18px;
-  display: block;
-  margin: 12px auto;
-  touch-action: none;
-  box-shadow: 0 0 28px rgba(56,189,248,0.25);
-}
-
-.controls {
-  display: flex;
-  gap: 10px;
-  margin-top: 12px;
-}
-
-button {
-  flex: 1;
-  border: none;
-  border-radius: 14px;
-  padding: 13px 8px;
-  font-size: 16px;
-  font-weight: bold;
-  color: white;
-  background: #2563eb;
-}
-
-button:active {
-  transform: scale(0.96);
-}
-
-.pause { background: #f59e0b; }
-.restart { background: #ef4444; }
-
-.status {
-  margin-top: 10px;
-  color: #cbd5e1;
-  font-size: 14px;
+.color{
+  width:24px;height:24px;border-radius:50%;
+  border:2px solid white;
 }
 </style>
 </head>
 
 <body>
 <div class="app">
-  <h1>🐍 Snake Pro</h1>
 
-  <div class="stats">
-    <div class="card">
-      <span>分數</span>
-      <strong id="score">0</strong>
-    </div>
-    <div class="card">
-      <span>最高分</span>
-      <strong id="best">0</strong>
-    </div>
-    <div class="card">
-      <span>速度</span>
-      <strong id="speed">1x</strong>
-    </div>
-  </div>
+<h1>🐍 Snake Neon Pro</h1>
 
-  <canvas id="game"></canvas>
+<div class="stats">
+<div class="glass">分數<br><b id="score">0</b></div>
+<div class="glass">最高<br><b id="best">0</b></div>
+</div>
 
-  <div class="controls">
-    <button onclick="startGame()">開始</button>
-    <button class="pause" onclick="pauseGame()">暫停</button>
-    <button class="restart" onclick="restartGame()">重開</button>
-  </div>
+<canvas id="game" width="360" height="360"></canvas>
 
-  <div class="status" id="status">按開始後，滑動螢幕控制方向</div>
+<div class="controls">
+<button onclick="startGame()">開始</button>
+<button onclick="pauseGame()">暫停</button>
+<button onclick="resetGame()">重開</button>
+</div>
+
+<div class="glass">
+蛇顏色
+<div class="colors" id="colors"></div>
+<input type="color" id="customColor">
+</div>
+
 </div>
 
 <script>
-const swCode = `
-const CACHE_NAME = "snake-pro-v1";
-self.addEventListener("install", e => {
-  e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(["./"])));
-});
-self.addEventListener("fetch", e => {
-  e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
-});
-`;
-
-if ("serviceWorker" in navigator) {
-  const blob = new Blob([swCode], { type: "text/javascript" });
-  const swURL = URL.createObjectURL(blob);
-  navigator.serviceWorker.register(swURL);
+// PWA
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("service-worker.js");
 }
 
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
 
-const scoreEl = document.getElementById("score");
-const bestEl = document.getElementById("best");
-const speedEl = document.getElementById("speed");
-const statusEl = document.getElementById("status");
+const box=20;
+const size=360;
+const grid=size/box;
 
-const CELL = 20;
-let SIZE = 360;
-let COLS = 18;
+let snake,food,dx,dy,score,best,running,paused,speed,loopId;
+let color=localStorage.getItem("snakeColor")||"#00ff88";
 
-let snake;
-let food;
-let dir;
-let nextDir;
-let score;
-let best = Number(localStorage.getItem("snakeBest") || 0);
-let running = false;
-let paused = false;
-let gameOver = false;
+const preset=["#00ff88","#00ccff","#a855f7","#ff00cc","#ffd700","#ff3333","#00ffff","#ffffff"];
 
-let stepTime = 150;
-let lastTime = 0;
-let accumulator = 0;
-let animationId = null;
+const colorsDiv=document.getElementById("colors");
+preset.forEach(c=>{
+  const el=document.createElement("div");
+  el.className="color";
+  el.style.background=c;
+  el.onclick=()=>{
+    color=c;
+    localStorage.setItem("snakeColor",c);
+  };
+  colorsDiv.appendChild(el);
+});
 
-function resizeCanvas() {
-  const displaySize = Math.min(window.innerWidth * 0.92, 390);
-  SIZE = Math.floor(displaySize / CELL) * CELL;
-  COLS = SIZE / CELL;
-  canvas.width = SIZE;
-  canvas.height = SIZE;
-}
+document.getElementById("customColor").oninput=e=>{
+  color=e.target.value;
+  localStorage.setItem("snakeColor",color);
+};
 
-function initGame() {
-  resizeCanvas();
+best=localStorage.getItem("best")||0;
 
-  const mid = Math.floor(COLS / 2) * CELL;
-  snake = [{ x: mid, y: mid }];
-  dir = { x: 0, y: 0 };
-  nextDir = { x: 0, y: 0 };
-  score = 0;
-  stepTime = 150;
-  running = false;
-  paused = false;
-  gameOver = false;
-  food = spawnFood();
-
+function resetGame(){
+  snake=[{x:160,y:160}];
+  dx=0;dy=0;
+  score=0;
+  speed=150;
+  running=false;
+  paused=false;
+  food=spawnFood();
   updateUI();
   draw();
-  statusEl.textContent = "按開始後，滑動螢幕控制方向";
 }
 
-function spawnFood() {
-  let pos;
-  do {
-    pos = {
-      x: Math.floor(Math.random() * COLS) * CELL,
-      y: Math.floor(Math.random() * COLS) * CELL
+function spawnFood(){
+  let f;
+  do{
+    f={
+      x:Math.floor(Math.random()*grid)*box,
+      y:Math.floor(Math.random()*grid)*box
     };
-  } while (snake.some(p => p.x === pos.x && p.y === pos.y));
-  return pos;
+  }while(snake.some(p=>p.x===f.x&&p.y===f.y));
+  return f;
 }
 
-function startGame() {
-  if (gameOver) initGame();
-  running = true;
-  paused = false;
-  statusEl.textContent = "遊戲中";
-  if (!animationId) {
-    lastTime = performance.now();
-    animationId = requestAnimationFrame(loop);
+function startGame(){
+  if(loopId)cancelAnimationFrame(loopId);
+  running=true;
+  paused=false;
+  loop();
+}
+
+function pauseGame(){
+  paused=!paused;
+}
+
+function updateUI(){
+  if(score>best){
+    best=score;
+    localStorage.setItem("best",best);
   }
+  document.getElementById("score").innerText=score;
+  document.getElementById("best").innerText=best;
 }
 
-function pauseGame() {
-  if (!running || gameOver) return;
-  paused = !paused;
-  statusEl.textContent = paused ? "已暫停" : "遊戲中";
-}
+let last=0,acc=0;
 
-function restartGame() {
-  cancelAnimationFrame(animationId);
-  animationId = null;
-  initGame();
-}
-
-function loop(time) {
-  const delta = time - lastTime;
-  lastTime = time;
-
-  if (running && !paused && !gameOver) {
-    accumulator += delta;
-    while (accumulator >= stepTime) {
+function loop(time=0){
+  const delta=time-last;
+  last=time;
+  if(running&&!paused){
+    acc+=delta;
+    if(acc>speed){
       update();
-      accumulator -= stepTime;
+      acc=0;
     }
   }
-
   draw();
-  animationId = requestAnimationFrame(loop);
+  loopId=requestAnimationFrame(loop);
 }
 
-function update() {
-  if (nextDir.x === 0 && nextDir.y === 0) return;
+function update(){
+  if(dx===0&&dy===0)return;
 
-  dir = nextDir;
+  const head={x:snake[0].x+dx,y:snake[0].y+dy};
 
-  const head = {
-    x: snake[0].x + dir.x * CELL,
-    y: snake[0].y + dir.y * CELL
-  };
-
-  const hitWall =
-    head.x < 0 || head.x >= SIZE ||
-    head.y < 0 || head.y >= SIZE;
-
-  const hitSelf = snake.some(p => p.x === head.x && p.y === head.y);
-
-  if (hitWall || hitSelf) {
-    endGame();
+  if(
+    head.x<0||head.x>=size||
+    head.y<0||head.y>=size||
+    snake.some(p=>p.x===head.x&&p.y===head.y)
+  ){
+    navigator.vibrate?.(200);
+    alert("Game Over："+score);
+    resetGame();
     return;
   }
 
   snake.unshift(head);
 
-  if (head.x === food.x && head.y === food.y) {
+  if(head.x===food.x&&head.y===food.y){
     score++;
-    playBeep(660, 0.05);
-    vibrate(30);
-    food = spawnFood();
-    stepTime = Math.max(60, stepTime - 4);
-  } else {
+    playSound(600);
+    navigator.vibrate?.(50);
+    food=spawnFood();
+    if(speed>60)speed-=5;
+  }else{
     snake.pop();
   }
 
   updateUI();
 }
 
-function endGame() {
-  running = false;
-  gameOver = true;
-  playBeep(160, 0.18);
-  vibrate([80, 40, 80]);
-  statusEl.textContent = "遊戲結束，按重開再玩";
-  alert("遊戲結束！分數：" + score);
-}
+function draw(){
+  ctx.clearRect(0,0,size,size);
 
-function updateUI() {
-  if (score > best) {
-    best = score;
-    localStorage.setItem("snakeBest", best);
-  }
+  ctx.fillStyle="red";
+  ctx.fillRect(food.x,food.y,box,box);
 
-  scoreEl.textContent = score;
-  bestEl.textContent = best;
-  speedEl.textContent = ((150 / stepTime).toFixed(1)) + "x";
-}
-
-function draw() {
-  ctx.clearRect(0, 0, SIZE, SIZE);
-
-  ctx.fillStyle = "#020617";
-  ctx.fillRect(0, 0, SIZE, SIZE);
-
-  ctx.strokeStyle = "rgba(255,255,255,0.05)";
-  for (let i = 0; i <= COLS; i++) {
-    ctx.beginPath();
-    ctx.moveTo(i * CELL, 0);
-    ctx.lineTo(i * CELL, SIZE);
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.moveTo(0, i * CELL);
-    ctx.lineTo(SIZE, i * CELL);
-    ctx.stroke();
-  }
-
-  ctx.fillStyle = "#ef4444";
-  roundRect(food.x + 2, food.y + 2, CELL - 4, CELL - 4, 6);
-
-  snake.forEach((p, i) => {
-    ctx.fillStyle = i === 0 ? "#22c55e" : "#84cc16";
-    roundRect(p.x + 2, p.y + 2, CELL - 4, CELL - 4, 6);
+  ctx.fillStyle=color;
+  snake.forEach(p=>{
+    ctx.fillRect(p.x,p.y,box,box);
   });
-
-  if (nextDir.x === 0 && nextDir.y === 0 && running) {
-    ctx.fillStyle = "rgba(255,255,255,0.75)";
-    ctx.font = "18px Arial";
-    ctx.textAlign = "center";
-    ctx.fillText("滑動開始移動", SIZE / 2, SIZE / 2);
-    ctx.textAlign = "left";
-  }
 }
 
-function roundRect(x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.roundRect(x, y, w, h, r);
-  ctx.fill();
-}
-
-let touchStartX = 0;
-let touchStartY = 0;
-const SWIPE_MIN = 24;
-
-canvas.addEventListener("touchstart", e => {
-  e.preventDefault();
-  touchStartX = e.touches[0].clientX;
-  touchStartY = e.touches[0].clientY;
-}, { passive: false });
-
-canvas.addEventListener("touchend", e => {
-  e.preventDefault();
-
-  const dxSwipe = e.changedTouches[0].clientX - touchStartX;
-  const dySwipe = e.changedTouches[0].clientY - touchStartY;
-
-  if (Math.abs(dxSwipe) < SWIPE_MIN && Math.abs(dySwipe) < SWIPE_MIN) return;
-
-  let newDir;
-
-  if (Math.abs(dxSwipe) > Math.abs(dySwipe)) {
-    newDir = dxSwipe > 0 ? { x: 1, y: 0 } : { x: -1, y: 0 };
-  } else {
-    newDir = dySwipe > 0 ? { x: 0, y: 1 } : { x: 0, y: -1 };
-  }
-
-  if (dir.x + newDir.x === 0 && dir.y + newDir.y === 0) return;
-
-  nextDir = newDir;
-  startGame();
-}, { passive: false });
-
-window.addEventListener("resize", () => {
-  restartGame();
+// swipe
+let sx,sy;
+canvas.addEventListener("touchstart",e=>{
+  sx=e.touches[0].clientX;
+  sy=e.touches[0].clientY;
 });
 
-function playBeep(freq, duration) {
-  try {
-    const audio = new AudioContext();
-    const osc = audio.createOscillator();
-    const gain = audio.createGain();
+canvas.addEventListener("touchend",e=>{
+  const ex=e.changedTouches[0].clientX;
+  const ey=e.changedTouches[0].clientY;
 
-    osc.frequency.value = freq;
-    osc.connect(gain);
-    gain.connect(audio.destination);
+  const dxs=ex-sx;
+  const dys=ey-sy;
 
-    gain.gain.value = 0.08;
-    osc.start();
+  if(Math.abs(dxs)<20&&Math.abs(dys)<20)return;
 
-    setTimeout(() => {
-      osc.stop();
-      audio.close();
-    }, duration * 1000);
-  } catch {}
+  if(Math.abs(dxs)>Math.abs(dys)){
+    if(dxs>0&&dx!==-box){dx=box;dy=0;}
+    else if(dxs<0&&dx!==box){dx=-box;dy=0;}
+  }else{
+    if(dys>0&&dy!==-box){dx=0;dy=box;}
+    else if(dys<0&&dy!==box){dx=0;dy=-box;}
+  }
+});
+
+function playSound(freq){
+  try{
+    const a=new AudioContext();
+    const o=a.createOscillator();
+    const g=a.createGain();
+    o.frequency.value=freq;
+    o.connect(g);
+    g.connect(a.destination);
+    g.gain.value=0.05;
+    o.start();
+    setTimeout(()=>{o.stop();a.close();},100);
+  }catch{}
 }
 
-function vibrate(pattern) {
-  if (navigator.vibrate) navigator.vibrate(pattern);
-}
-
-initGame();
+resetGame();
 </script>
 </body>
 </html>
