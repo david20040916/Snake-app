@@ -1,1 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>貪食蛇</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#111111">
+  <style>
+    body {
+      margin: 0;
+      background: #111;
+      color: white;
+      text-align: center;
+      font-family: Arial, sans-serif;
+      overflow: hidden;
+    }
 
+    canvas {
+      background: #222;
+      display: block;
+      margin: 10px auto;
+      border: 3px solid white;
+      touch-action: none;
+    }
+  </style>
+</head>
+<body>
+  <h2>貪食蛇</h2>
+  <p>滑動螢幕控制方向</p>
+  <canvas id="game" width="360" height="360"></canvas>
+
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("service-worker.js");
+    }
+
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+
+    const box = 20;
+    let snake = [{ x: 180, y: 180 }];
+    let food = {
+      x: Math.floor(Math.random() * 18) * box,
+      y: Math.floor(Math.random() * 18) * box
+    };
+
+    let dx = box;
+    let dy = 0;
+    let score = 0;
+    let startX = 0;
+    let startY = 0;
+
+    canvas.addEventListener("touchstart", e => {
+      e.preventDefault();
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+    });
+
+    canvas.addEventListener("touchend", e => {
+      e.preventDefault();
+      const endX = e.changedTouches[0].clientX;
+      const endY = e.changedTouches[0].clientY;
+
+      const diffX = endX - startX;
+      const diffY = endY - startY;
+
+      if (Math.abs(diffX) > Math.abs(diffY)) {
+        if (diffX > 0 && dx === 0) {
+          dx = box;
+          dy = 0;
+        } else if (diffX < 0 && dx === 0) {
+          dx = -box;
+          dy = 0;
+        }
+      } else {
+        if (diffY > 0 && dy === 0) {
+          dx = 0;
+          dy = box;
+        } else if (diffY < 0 && dy === 0) {
+          dx = 0;
+          dy = -box;
+        }
+      }
+    });
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = "red";
+      ctx.fillRect(food.x, food.y, box, box);
+
+      ctx.fillStyle = "lime";
+      snake.forEach(part => {
+        ctx.fillRect(part.x, part.y, box, box);
+      });
+
+      const head = {
+        x: snake[0].x + dx,
+        y: snake[0].y + dy
+      };
+
+      if (
+        head.x < 0 ||
+        head.x >= canvas.width ||
+        head.y < 0 ||
+        head.y >= canvas.height ||
+        snake.some(part => part.x === head.x && part.y === head.y)
+      ) {
+        alert("遊戲結束！分數：" + score);
+        location.reload();
+      }
+
+      snake.unshift(head);
+
+      if (head.x === food.x && head.y === food.y) {
+        score++;
+        food = {
+          x: Math.floor(Math.random() * 18) * box,
+          y: Math.floor(Math.random() * 18) * box
+        };
+      } else {
+        snake.pop();
+      }
+
+      ctx.fillStyle = "white";
+      ctx.font = "16px Arial";
+      ctx.fillText("分數：" + score, 10, 20);
+    }
+
+    setInterval(draw, 120);
+  </script>
+</body>
+</html>
