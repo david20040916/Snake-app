@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>貪食蛇</title>
+<title>Snake Pro</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#111111">
 <style>
@@ -13,29 +13,43 @@
     color: white;
     text-align: center;
     font-family: Arial, sans-serif;
-    overflow: hidden;
   }
-  h1 { margin-top: 30px; }
   canvas {
     background: #222;
-    border: 4px solid white;
+    border: 3px solid white;
+    margin: 10px auto;
     display: block;
-    margin: 20px auto;
     touch-action: none;
+  }
+  button {
+    margin: 5px;
+    padding: 10px 20px;
+    font-size: 16px;
   }
 </style>
 </head>
 <body>
 
-<h1>貪食蛇</h1>
-<p>滑動螢幕控制方向</p>
+<h2>🐍 Snake Pro</h2>
+<p>滑動控制方向</p>
+
 <canvas id="game" width="360" height="360"></canvas>
 
+<div>
+  <button onclick="startGame()">開始</button>
+  <button onclick="pauseGame()">暫停</button>
+  <button onclick="resetGame()">重開</button>
+</div>
+
+<p id="scoreText">分數：0 | 最高分：0</p>
+
 <script>
+// PWA
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("service-worker.js");
 }
 
+// 基本設定
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
@@ -43,29 +57,57 @@ const box = 20;
 const size = 360;
 const grid = size / box;
 
-let snake = [{ x: 160, y: 160 }];
-let dx = box;
-let dy = 0;
-let score = 0;
-let gameOver = false;
+let snake, food, dx, dy, score, timer, speed, running;
+let highScore = localStorage.getItem("highScore") || 0;
 
-let food = {
-  x: Math.floor(Math.random() * grid) * box,
-  y: Math.floor(Math.random() * grid) * box
-};
+// 初始化
+function resetGame() {
+  snake = [{ x: 160, y: 160 }];
+  dx = 0;
+  dy = 0;
+  score = 0;
+  speed = 150;
+  running = false;
+  food = spawnFood();
+  updateScore();
+  draw();
+}
 
-let startX = 0;
-let startY = 0;
+function spawnFood() {
+  return {
+    x: Math.floor(Math.random() * grid) * box,
+    y: Math.floor(Math.random() * grid) * box
+  };
+}
 
-canvas.addEventListener("touchstart", function(e) {
-  e.preventDefault();
+function startGame() {
+  if (timer) clearInterval(timer);
+  running = true;
+  timer = setInterval(update, speed);
+}
+
+function pauseGame() {
+  running = false;
+}
+
+function updateScore() {
+  if (score > highScore) {
+    highScore = score;
+    localStorage.setItem("highScore", highScore);
+  }
+  document.getElementById("scoreText").innerText =
+    "分數：" + score + " | 最高分：" + highScore;
+}
+
+// 手勢控制
+let startX, startY;
+
+canvas.addEventListener("touchstart", e => {
   startX = e.touches[0].clientX;
   startY = e.touches[0].clientY;
 }, { passive: false });
 
-canvas.addEventListener("touchend", function(e) {
-  e.preventDefault();
-
+canvas.addEventListener("touchend", e => {
   const endX = e.changedTouches[0].clientX;
   const endY = e.changedTouches[0].clientY;
 
@@ -73,35 +115,77 @@ canvas.addEventListener("touchend", function(e) {
   const diffY = endY - startY;
 
   if (Math.abs(diffX) > Math.abs(diffY)) {
-    if (diffX > 0 && dx === 0) {
-      dx = box;
-      dy = 0;
-    } else if (diffX < 0 && dx === 0) {
-      dx = -box;
-      dy = 0;
-    }
+    if (diffX > 0 && dx !== -box) { dx = box; dy = 0; }
+    else if (diffX < 0 && dx !== box) { dx = -box; dy = 0; }
   } else {
-    if (diffY > 0 && dy === 0) {
-      dx = 0;
-      dy = box;
+    if (diffY > 0 && dy !== -box) { dx = 0; dy = box; }
+    else if (diffY < 0 && dy !== box) { dx = 0; dy = -box; }
+  }
+}, { passive: false });
+
+// 畫面
+function draw() {
+  ctx.clearRect(0, 0, size, size);
+
+  ctx.fillStyle = "red";
+  ctx.fillRect(food.x, food.y, box, box);
+
+  ctx.fillStyle = "lime";
+  snake.forEach(p => ctx.fillRect(p.x, p.y, box, box));
+}
+
+// 遊戲邏輯
+function update() {
+  if (!running) return;
+
+  if (dx === 0 && dy === 0) return;
+
+  const head = {
+    x: snake[0].x + dx,
+    y: snake[0].y + dy
+  };
+
+  // 撞牆 / 撞自己
+  if (
+    head.x < 0 || head.x >= size ||
+    head.y < 0 || head.y >= size ||
+    snake.some(p => p.x === head.x && p.y === head.y)
+  ) {
+    running = false;
+    clearInterval(timer);
+    alert("遊戲結束！分數：" + score);
+    resetGame();
+    return;
+  }
+
+  snake.unshift(head);
+
+  // 吃食物
+  if (head.x === food.x && head.y === food.y) {
+    score++;
+    food = spawnFood();
+
+    // ⚡ 加速機制
+    if (speed > 60) {
+      speed -= 5;
+      clearInterval(timer);
+      timer = setInterval(update, speed);
     }
-      if (
-        head.x < 0 ||
-        head.x >= canvas.width ||
-        head.y < 0 ||
-        head.y >= canvas.height ||
-        snake.some(part => part.x === head.x && part.y === head.y)
-      ) {
-        alert("遊戲結束！分數：" + score);
-        location.reload();
-      }
 
-      snake.unshift(head);
+  } else {
+    snake.pop();
+  }
 
-      if (head.x === food.x && head.y === food.y) {
-        score++;
-        food = {
-          x: Math.floor(Math.random() * grid)
+  updateScore();
+  draw();
+}
+
+// 初始化
+resetGame();
+</script>
+
+</body>
+</html>          x: Math.floor(Math.random() * grid)
           y: Math.floor(Math.random() * grid)
         };
       } else {
