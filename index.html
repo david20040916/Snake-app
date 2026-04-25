@@ -1,107 +1,424 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Snake Pro</title>
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#111111">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+<title>貪食蛇 Snake Pro</title>
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#0f172a" />
+
 <style>
-  body {
-    margin: 0;
-    background: #111;
-    color: white;
-    text-align: center;
-    font-family: Arial, sans-serif;
-  }
-  canvas {
-    background: #222;
-    border: 3px solid white;
-    margin: 10px auto;
-    display: block;
-    touch-action: none;
-  }
-  button {
-    margin: 5px;
-    padding: 10px 20px;
-    font-size: 16px;
-  }
-</style>
-</head>
-<body>
-
-<h2>🐍 Snake Pro</h2>
-<p>滑動控制方向</p>
-
-<canvas id="game" width="360" height="360"></canvas>
-
-<div>
-  <button onclick="startGame()">開始</button>
-  <button onclick="pauseGame()">暫停</button>
-  <button onclick="resetGame()">重開</button>
-</div>
-
-<p id="scoreText">分數：0 | 最高分：0</p>
-
-<script>
-// PWA
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("service-worker.js");
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
-// 基本設定
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: radial-gradient(circle at top, #1e293b, #020617);
+  color: #fff;
+  font-family: Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.app {
+  width: 100%;
+  max-width: 430px;
+  padding: 16px;
+  text-align: center;
+}
+
+h1 {
+  margin: 8px 0;
+  font-size: 30px;
+}
+
+.stats {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.card {
+  flex: 1;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 14px;
+  padding: 10px;
+}
+
+.card span {
+  display: block;
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.card strong {
+  font-size: 22px;
+}
+
+canvas {
+  width: min(92vw, 390px);
+  height: min(92vw, 390px);
+  background: #020617;
+  border: 3px solid #38bdf8;
+  border-radius: 18px;
+  display: block;
+  margin: 12px auto;
+  touch-action: none;
+  box-shadow: 0 0 28px rgba(56,189,248,0.25);
+}
+
+.controls {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+button {
+  flex: 1;
+  border: none;
+  border-radius: 14px;
+  padding: 13px 8px;
+  font-size: 16px;
+  font-weight: bold;
+  color: white;
+  background: #2563eb;
+}
+
+button:active {
+  transform: scale(0.96);
+}
+
+.pause { background: #f59e0b; }
+.restart { background: #ef4444; }
+
+.status {
+  margin-top: 10px;
+  color: #cbd5e1;
+  font-size: 14px;
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+  <h1>🐍 Snake Pro</h1>
+
+  <div class="stats">
+    <div class="card">
+      <span>分數</span>
+      <strong id="score">0</strong>
+    </div>
+    <div class="card">
+      <span>最高分</span>
+      <strong id="best">0</strong>
+    </div>
+    <div class="card">
+      <span>速度</span>
+      <strong id="speed">1x</strong>
+    </div>
+  </div>
+
+  <canvas id="game"></canvas>
+
+  <div class="controls">
+    <button onclick="startGame()">開始</button>
+    <button class="pause" onclick="pauseGame()">暫停</button>
+    <button class="restart" onclick="restartGame()">重開</button>
+  </div>
+
+  <div class="status" id="status">按開始後，滑動螢幕控制方向</div>
+</div>
+
+<script>
+const swCode = `
+const CACHE_NAME = "snake-pro-v1";
+self.addEventListener("install", e => {
+  e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(["./"])));
+});
+self.addEventListener("fetch", e => {
+  e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
+});
+`;
+
+if ("serviceWorker" in navigator) {
+  const blob = new Blob([swCode], { type: "text/javascript" });
+  const swURL = URL.createObjectURL(blob);
+  navigator.serviceWorker.register(swURL);
+}
+
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-const box = 20;
-const size = 360;
-const grid = size / box;
+const scoreEl = document.getElementById("score");
+const bestEl = document.getElementById("best");
+const speedEl = document.getElementById("speed");
+const statusEl = document.getElementById("status");
 
-let snake, food, dx, dy, score, timer, speed, running;
-let highScore = localStorage.getItem("highScore") || 0;
+const CELL = 20;
+let SIZE = 360;
+let COLS = 18;
 
-// 初始化
-function resetGame() {
-  snake = [{ x: 160, y: 160 }];
-  dx = 0;
-  dy = 0;
+let snake;
+let food;
+let dir;
+let nextDir;
+let score;
+let best = Number(localStorage.getItem("snakeBest") || 0);
+let running = false;
+let paused = false;
+let gameOver = false;
+
+let stepTime = 150;
+let lastTime = 0;
+let accumulator = 0;
+let animationId = null;
+
+function resizeCanvas() {
+  const displaySize = Math.min(window.innerWidth * 0.92, 390);
+  SIZE = Math.floor(displaySize / CELL) * CELL;
+  COLS = SIZE / CELL;
+  canvas.width = SIZE;
+  canvas.height = SIZE;
+}
+
+function initGame() {
+  resizeCanvas();
+
+  const mid = Math.floor(COLS / 2) * CELL;
+  snake = [{ x: mid, y: mid }];
+  dir = { x: 0, y: 0 };
+  nextDir = { x: 0, y: 0 };
   score = 0;
-  speed = 150;
+  stepTime = 150;
   running = false;
+  paused = false;
+  gameOver = false;
   food = spawnFood();
-  updateScore();
+
+  updateUI();
   draw();
+  statusEl.textContent = "按開始後，滑動螢幕控制方向";
 }
 
 function spawnFood() {
-  return {
-    x: Math.floor(Math.random() * grid) * box,
-    y: Math.floor(Math.random() * grid) * box
-  };
+  let pos;
+  do {
+    pos = {
+      x: Math.floor(Math.random() * COLS) * CELL,
+      y: Math.floor(Math.random() * COLS) * CELL
+    };
+  } while (snake.some(p => p.x === pos.x && p.y === pos.y));
+  return pos;
 }
 
 function startGame() {
-  if (timer) clearInterval(timer);
+  if (gameOver) initGame();
   running = true;
-  timer = setInterval(update, speed);
+  paused = false;
+  statusEl.textContent = "遊戲中";
+  if (!animationId) {
+    lastTime = performance.now();
+    animationId = requestAnimationFrame(loop);
+  }
 }
 
 function pauseGame() {
-  running = false;
+  if (!running || gameOver) return;
+  paused = !paused;
+  statusEl.textContent = paused ? "已暫停" : "遊戲中";
 }
 
-function updateScore() {
-  if (score > highScore) {
-    highScore = score;
-    localStorage.setItem("highScore", highScore);
+function restartGame() {
+  cancelAnimationFrame(animationId);
+  animationId = null;
+  initGame();
+}
+
+function loop(time) {
+  const delta = time - lastTime;
+  lastTime = time;
+
+  if (running && !paused && !gameOver) {
+    accumulator += delta;
+    while (accumulator >= stepTime) {
+      update();
+      accumulator -= stepTime;
+    }
   }
-  document.getElementById("scoreText").innerText =
-    "分數：" + score + " | 最高分：" + highScore;
+
+  draw();
+  animationId = requestAnimationFrame(loop);
 }
 
-// 手勢控制
-let startX, startY;
+function update() {
+  if (nextDir.x === 0 && nextDir.y === 0) return;
 
+  dir = nextDir;
+
+  const head = {
+    x: snake[0].x + dir.x * CELL,
+    y: snake[0].y + dir.y * CELL
+  };
+
+  const hitWall =
+    head.x < 0 || head.x >= SIZE ||
+    head.y < 0 || head.y >= SIZE;
+
+  const hitSelf = snake.some(p => p.x === head.x && p.y === head.y);
+
+  if (hitWall || hitSelf) {
+    endGame();
+    return;
+  }
+
+  snake.unshift(head);
+
+  if (head.x === food.x && head.y === food.y) {
+    score++;
+    playBeep(660, 0.05);
+    vibrate(30);
+    food = spawnFood();
+    stepTime = Math.max(60, stepTime - 4);
+  } else {
+    snake.pop();
+  }
+
+  updateUI();
+}
+
+function endGame() {
+  running = false;
+  gameOver = true;
+  playBeep(160, 0.18);
+  vibrate([80, 40, 80]);
+  statusEl.textContent = "遊戲結束，按重開再玩";
+  alert("遊戲結束！分數：" + score);
+}
+
+function updateUI() {
+  if (score > best) {
+    best = score;
+    localStorage.setItem("snakeBest", best);
+  }
+
+  scoreEl.textContent = score;
+  bestEl.textContent = best;
+  speedEl.textContent = ((150 / stepTime).toFixed(1)) + "x";
+}
+
+function draw() {
+  ctx.clearRect(0, 0, SIZE, SIZE);
+
+  ctx.fillStyle = "#020617";
+  ctx.fillRect(0, 0, SIZE, SIZE);
+
+  ctx.strokeStyle = "rgba(255,255,255,0.05)";
+  for (let i = 0; i <= COLS; i++) {
+    ctx.beginPath();
+    ctx.moveTo(i * CELL, 0);
+    ctx.lineTo(i * CELL, SIZE);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(0, i * CELL);
+    ctx.lineTo(SIZE, i * CELL);
+    ctx.stroke();
+  }
+
+  ctx.fillStyle = "#ef4444";
+  roundRect(food.x + 2, food.y + 2, CELL - 4, CELL - 4, 6);
+
+  snake.forEach((p, i) => {
+    ctx.fillStyle = i === 0 ? "#22c55e" : "#84cc16";
+    roundRect(p.x + 2, p.y + 2, CELL - 4, CELL - 4, 6);
+  });
+
+  if (nextDir.x === 0 && nextDir.y === 0 && running) {
+    ctx.fillStyle = "rgba(255,255,255,0.75)";
+    ctx.font = "18px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText("滑動開始移動", SIZE / 2, SIZE / 2);
+    ctx.textAlign = "left";
+  }
+}
+
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, r);
+  ctx.fill();
+}
+
+let touchStartX = 0;
+let touchStartY = 0;
+const SWIPE_MIN = 24;
+
+canvas.addEventListener("touchstart", e => {
+  e.preventDefault();
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+}, { passive: false });
+
+canvas.addEventListener("touchend", e => {
+  e.preventDefault();
+
+  const dxSwipe = e.changedTouches[0].clientX - touchStartX;
+  const dySwipe = e.changedTouches[0].clientY - touchStartY;
+
+  if (Math.abs(dxSwipe) < SWIPE_MIN && Math.abs(dySwipe) < SWIPE_MIN) return;
+
+  let newDir;
+
+  if (Math.abs(dxSwipe) > Math.abs(dySwipe)) {
+    newDir = dxSwipe > 0 ? { x: 1, y: 0 } : { x: -1, y: 0 };
+  } else {
+    newDir = dySwipe > 0 ? { x: 0, y: 1 } : { x: 0, y: -1 };
+  }
+
+  if (dir.x + newDir.x === 0 && dir.y + newDir.y === 0) return;
+
+  nextDir = newDir;
+  startGame();
+}, { passive: false });
+
+window.addEventListener("resize", () => {
+  restartGame();
+});
+
+function playBeep(freq, duration) {
+  try {
+    const audio = new AudioContext();
+    const osc = audio.createOscillator();
+    const gain = audio.createGain();
+
+    osc.frequency.value = freq;
+    osc.connect(gain);
+    gain.connect(audio.destination);
+
+    gain.gain.value = 0.08;
+    osc.start();
+
+    setTimeout(() => {
+      osc.stop();
+      audio.close();
+    }, duration * 1000);
+  } catch {}
+}
+
+function vibrate(pattern) {
+  if (navigator.vibrate) navigator.vibrate(pattern);
+}
+
+initGame();
+</script>
+</body>
+</html>
 canvas.addEventListener("touchstart", e => {
   startX = e.touches[0].clientX;
   startY = e.touches[0].clientY;
