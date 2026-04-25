@@ -43,8 +43,8 @@
     const box = 20;
     let snake = [{ x: 180, y: 180 }];
     let food = {
-      x: Math.floor(Math.random() * 18) * box,
-      y: Math.floor(Math.random() * 18) * box
+      x: Math.floor(Math.random() * grid)x,
+      y: Math.floor(Math.random() * grid)
     };
 
     let dx = box;
@@ -118,8 +118,8 @@
       if (head.x === food.x && head.y === food.y) {
         score++;
         food = {
-          x: Math.floor(Math.random() * 18) * box,
-          y: Math.floor(Math.random() * 18) * box
+          x: Math.floor(Math.random() * grid)
+          y: Math.floor(Math.random() * grid)
         };
       } else {
         snake.pop();
