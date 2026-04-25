@@ -5,143 +5,281 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Snake Neon Pro</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#0f172a">
+<meta name="theme-color" content="#020617">
 
 <style>
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{
-  font-family:sans-serif;
-  background:radial-gradient(circle at top,#1e293b,#020617);
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  -webkit-tap-highlight-color:transparent;
+}
+
+html,body{
+  width:100%;
+  height:100%;
+  overflow:hidden;
+  overscroll-behavior:none;
+  touch-action:none;
+  background:#020617;
+  font-family:Arial,sans-serif;
   color:white;
+}
+
+body{
   display:flex;
   justify-content:center;
   align-items:center;
-  min-height:100vh;
+  background:
+    radial-gradient(circle at 20% 10%, rgba(56,189,248,.35), transparent 30%),
+    radial-gradient(circle at 80% 20%, rgba(168,85,247,.3), transparent 30%),
+    radial-gradient(circle at 50% 100%, rgba(34,197,94,.2), transparent 35%),
+    #020617;
 }
+
 .app{
   width:100%;
-  max-width:420px;
-  padding:16px;
+  max-width:430px;
+  padding:14px;
   text-align:center;
 }
-h1{font-size:26px;margin-bottom:10px}
-.glass{
-  background:rgba(255,255,255,0.08);
-  backdrop-filter:blur(10px);
-  border-radius:14px;
-  padding:10px;
+
+h1{
+  font-size:28px;
+  margin-bottom:10px;
+  text-shadow:0 0 18px #38bdf8;
+}
+
+.hud{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:8px;
   margin-bottom:10px;
 }
-.stats{display:flex;gap:8px}
-.stats div{flex:1}
-canvas{
-  width:100%;
-  max-width:360px;
-  height:360px;
-  background:#020617;
-  border:3px solid #38bdf8;
+
+.card{
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.16);
+  backdrop-filter:blur(12px);
   border-radius:16px;
-  margin:10px auto;
+  padding:10px 6px;
+  box-shadow:0 0 18px rgba(56,189,248,.12);
+}
+
+.card span{
+  font-size:12px;
+  color:#94a3b8;
+}
+
+.card b{
   display:block;
-  box-shadow:0 0 20px #38bdf8;
+  font-size:22px;
+  margin-top:3px;
 }
-.controls{display:flex;gap:8px;margin-top:10px}
-button{
-  flex:1;
-  padding:10px;
-  border:none;
-  border-radius:10px;
-  font-weight:bold;
-  background:#2563eb;
-  color:white;
+
+canvas{
+  width:min(92vw,380px);
+  height:min(92vw,380px);
+  max-width:380px;
+  max-height:380px;
+  background:rgba(2,6,23,.92);
+  border:3px solid #38bdf8;
+  border-radius:22px;
+  box-shadow:
+    0 0 22px rgba(56,189,248,.8),
+    inset 0 0 25px rgba(56,189,248,.12);
+  display:block;
+  margin:10px auto;
+  touch-action:none;
 }
-button:active{transform:scale(0.95)}
-.colors{
-  display:flex;
-  flex-wrap:wrap;
-  gap:6px;
+
+.controls{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:8px;
   margin-top:10px;
 }
-.color{
-  width:24px;height:24px;border-radius:50%;
-  border:2px solid white;
+
+button{
+  border:none;
+  border-radius:16px;
+  padding:13px 6px;
+  color:white;
+  font-weight:bold;
+  font-size:15px;
+  background:linear-gradient(135deg,#2563eb,#38bdf8);
+  box-shadow:0 8px 18px rgba(37,99,235,.35);
+}
+
+button:active{
+  transform:scale(.95);
+}
+
+.pause{
+  background:linear-gradient(135deg,#f59e0b,#f97316);
+}
+
+.restart{
+  background:linear-gradient(135deg,#ef4444,#fb7185);
+}
+
+.panel{
+  margin-top:10px;
+  padding:10px;
+  border-radius:18px;
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.14);
+  backdrop-filter:blur(12px);
+}
+
+.colors{
+  display:flex;
+  justify-content:center;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:8px;
+}
+
+.color-dot{
+  width:28px;
+  height:28px;
+  border-radius:50%;
+  border:2px solid rgba(255,255,255,.75);
+  box-shadow:0 0 12px currentColor;
+}
+
+input[type="color"]{
+  margin-top:10px;
+  width:70px;
+  height:34px;
+  border:none;
+  background:transparent;
+}
+
+.status{
+  margin-top:8px;
+  color:#cbd5e1;
+  font-size:13px;
 }
 </style>
 </head>
-
 <body>
+
 <div class="app">
+  <h1>🐍 Snake Neon Pro</h1>
 
-<h1>🐍 Snake Neon Pro</h1>
+  <div class="hud">
+    <div class="card"><span>分數</span><b id="score">0</b></div>
+    <div class="card"><span>最高</span><b id="best">0</b></div>
+    <div class="card"><span>速度</span><b id="speed">1x</b></div>
+  </div>
 
-<div class="stats">
-<div class="glass">分數<br><b id="score">0</b></div>
-<div class="glass">最高<br><b id="best">0</b></div>
-</div>
+  <canvas id="game" width="360" height="360"></canvas>
 
-<canvas id="game" width="360" height="360"></canvas>
+  <div class="controls">
+    <button onclick="startGame()">開始</button>
+    <button class="pause" onclick="pauseGame()">暫停</button>
+    <button class="restart" onclick="restartGame()">重開</button>
+  </div>
 
-<div class="controls">
-<button onclick="startGame()">開始</button>
-<button onclick="pauseGame()">暫停</button>
-<button onclick="resetGame()">重開</button>
-</div>
+  <div class="panel">
+    <div>蛇的顏色</div>
+    <div class="colors" id="colors"></div>
+    <input type="color" id="customColor">
+  </div>
 
-<div class="glass">
-蛇顏色
-<div class="colors" id="colors"></div>
-<input type="color" id="customColor">
-</div>
-
+  <div class="status" id="status">按開始後滑動螢幕開始移動</div>
 </div>
 
 <script>
-// PWA
 if("serviceWorker" in navigator){
   navigator.serviceWorker.register("service-worker.js");
 }
 
+document.addEventListener("touchmove",function(e){
+  e.preventDefault();
+},{passive:false});
+
 const canvas=document.getElementById("game");
 const ctx=canvas.getContext("2d");
+
+const scoreEl=document.getElementById("score");
+const bestEl=document.getElementById("best");
+const speedEl=document.getElementById("speed");
+const statusEl=document.getElementById("status");
+const colorsEl=document.getElementById("colors");
+const customColor=document.getElementById("customColor");
 
 const box=20;
 const size=360;
 const grid=size/box;
 
-let snake,food,dx,dy,score,best,running,paused,speed,loopId;
-let color=localStorage.getItem("snakeColor")||"#00ff88";
+let snake=[];
+let food={x:0,y:0};
+let dx=0;
+let dy=0;
+let nextDx=0;
+let nextDy=0;
+let score=0;
+let best=Number(localStorage.getItem("snakeBest")||0);
+let speed=150;
+let running=false;
+let paused=false;
+let gameOver=false;
+let loopId=null;
+let lastTime=0;
+let acc=0;
 
-const preset=["#00ff88","#00ccff","#a855f7","#ff00cc","#ffd700","#ff3333","#00ffff","#ffffff"];
+let snakeColor=localStorage.getItem("snakeColor")||"#00ff88";
+customColor.value=snakeColor;
 
-const colorsDiv=document.getElementById("colors");
-preset.forEach(c=>{
-  const el=document.createElement("div");
-  el.className="color";
-  el.style.background=c;
-  el.onclick=()=>{
-    color=c;
+const presetColors=[
+  "#00ff88",
+  "#00ccff",
+  "#a855f7",
+  "#ff00cc",
+  "#ffd700",
+  "#ff3333",
+  "#00ffff",
+  "#ffffff"
+];
+
+presetColors.forEach(c=>{
+  const dot=document.createElement("div");
+  dot.className="color-dot";
+  dot.style.background=c;
+  dot.style.color=c;
+  dot.onclick=()=>{
+    tapSound();
+    snakeColor=c;
+    customColor.value=c;
     localStorage.setItem("snakeColor",c);
+    draw();
   };
-  colorsDiv.appendChild(el);
+  colorsEl.appendChild(dot);
 });
 
-document.getElementById("customColor").oninput=e=>{
-  color=e.target.value;
-  localStorage.setItem("snakeColor",color);
-};
+customColor.addEventListener("input",e=>{
+  snakeColor=e.target.value;
+  localStorage.setItem("snakeColor",snakeColor);
+  draw();
+});
 
-best=localStorage.getItem("best")||0;
-
-function resetGame(){
+function init(){
   snake=[{x:160,y:160}];
-  dx=0;dy=0;
+  dx=0;
+  dy=0;
+  nextDx=0;
+  nextDy=0;
   score=0;
   speed=150;
   running=false;
   paused=false;
+  gameOver=false;
   food=spawnFood();
   updateUI();
   draw();
+  statusEl.textContent="按開始後滑動螢幕開始移動";
 }
 
 function spawnFood(){
@@ -156,54 +294,65 @@ function spawnFood(){
 }
 
 function startGame(){
-  if(loopId)cancelAnimationFrame(loopId);
+  tapSound();
+  if(gameOver) init();
   running=true;
   paused=false;
-  loop();
+  statusEl.textContent="遊戲中";
+  if(!loopId){
+    lastTime=performance.now();
+    loopId=requestAnimationFrame(loop);
+  }
 }
 
 function pauseGame(){
+  tapSound();
+  if(!running||gameOver)return;
   paused=!paused;
+  statusEl.textContent=paused?"已暫停":"遊戲中";
 }
 
-function updateUI(){
-  if(score>best){
-    best=score;
-    localStorage.setItem("best",best);
+function restartGame(){
+  tapSound();
+  if(loopId){
+    cancelAnimationFrame(loopId);
+    loopId=null;
   }
-  document.getElementById("score").innerText=score;
-  document.getElementById("best").innerText=best;
+  init();
 }
 
-let last=0,acc=0;
+function loop(time){
+  const delta=time-lastTime;
+  lastTime=time;
 
-function loop(time=0){
-  const delta=time-last;
-  last=time;
-  if(running&&!paused){
+  if(running&&!paused&&!gameOver){
     acc+=delta;
-    if(acc>speed){
+    while(acc>=speed){
       update();
-      acc=0;
+      acc-=speed;
     }
   }
+
   draw();
   loopId=requestAnimationFrame(loop);
 }
 
 function update(){
-  if(dx===0&&dy===0)return;
+  if(nextDx===0&&nextDy===0)return;
 
-  const head={x:snake[0].x+dx,y:snake[0].y+dy};
+  dx=nextDx;
+  dy=nextDy;
 
-  if(
-    head.x<0||head.x>=size||
-    head.y<0||head.y>=size||
-    snake.some(p=>p.x===head.x&&p.y===head.y)
-  ){
-    navigator.vibrate?.(200);
-    alert("Game Over："+score);
-    resetGame();
+  const head={
+    x:snake[0].x+dx,
+    y:snake[0].y+dy
+  };
+
+  const hitWall=head.x<0||head.x>=size||head.y<0||head.y>=size;
+  const hitSelf=snake.some(p=>p.x===head.x&&p.y===head.y);
+
+  if(hitWall||hitSelf){
+    endGame();
     return;
   }
 
@@ -211,10 +360,10 @@ function update(){
 
   if(head.x===food.x&&head.y===food.y){
     score++;
-    playSound(600);
-    navigator.vibrate?.(50);
+    eatSound();
+    vibrate(40);
     food=spawnFood();
-    if(speed>60)speed-=5;
+    speed=Math.max(65,speed-5);
   }else{
     snake.pop();
   }
@@ -222,58 +371,145 @@ function update(){
   updateUI();
 }
 
+function endGame(){
+  running=false;
+  gameOver=true;
+  deathSound();
+  vibrate([100,50,100]);
+  statusEl.textContent="遊戲結束，按重開再玩";
+  setTimeout(()=>alert("Game Over！分數："+score),100);
+}
+
+function updateUI(){
+  if(score>best){
+    best=score;
+    localStorage.setItem("snakeBest",best);
+  }
+  scoreEl.textContent=score;
+  bestEl.textContent=best;
+  speedEl.textContent=(150/speed).toFixed(1)+"x";
+}
+
 function draw(){
   ctx.clearRect(0,0,size,size);
 
-  ctx.fillStyle="red";
-  ctx.fillRect(food.x,food.y,box,box);
+  ctx.fillStyle="#020617";
+  ctx.fillRect(0,0,size,size);
 
-  ctx.fillStyle=color;
-  snake.forEach(p=>{
-    ctx.fillRect(p.x,p.y,box,box);
+  ctx.strokeStyle="rgba(255,255,255,.05)";
+  for(let i=0;i<=grid;i++){
+    ctx.beginPath();
+    ctx.moveTo(i*box,0);
+    ctx.lineTo(i*box,size);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(0,i*box);
+    ctx.lineTo(size,i*box);
+    ctx.stroke();
+  }
+
+  drawGlow(food.x,food.y,"#ff3b3b");
+  snake.forEach((p,i)=>{
+    drawGlow(p.x,p.y,i===0?"#ffffff":snakeColor);
   });
+
+  if(running&&nextDx===0&&nextDy===0){
+    ctx.fillStyle="rgba(255,255,255,.75)";
+    ctx.font="18px Arial";
+    ctx.textAlign="center";
+    ctx.fillText("滑動開始",size/2,size/2);
+    ctx.textAlign="left";
+  }
 }
 
-// swipe
-let sx,sy;
+function drawGlow(x,y,c){
+  ctx.shadowColor=c;
+  ctx.shadowBlur=14;
+  ctx.fillStyle=c;
+  roundRect(x+2,y+2,box-4,box-4,6);
+  ctx.shadowBlur=0;
+}
+
+function roundRect(x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.lineTo(x+w-r,y);
+  ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);
+  ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r);
+  ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.fill();
+}
+
+let sx=0;
+let sy=0;
+const swipeLimit=28;
+
 canvas.addEventListener("touchstart",e=>{
+  e.preventDefault();
   sx=e.touches[0].clientX;
   sy=e.touches[0].clientY;
-});
+},{passive:false});
+
+canvas.addEventListener("touchmove",e=>{
+  e.preventDefault();
+},{passive:false});
 
 canvas.addEventListener("touchend",e=>{
+  e.preventDefault();
+
   const ex=e.changedTouches[0].clientX;
   const ey=e.changedTouches[0].clientY;
+  const diffX=ex-sx;
+  const diffY=ey-sy;
 
-  const dxs=ex-sx;
-  const dys=ey-sy;
+  if(Math.abs(diffX)<swipeLimit&&Math.abs(diffY)<swipeLimit)return;
 
-  if(Math.abs(dxs)<20&&Math.abs(dys)<20)return;
+  let ndx=0;
+  let ndy=0;
 
-  if(Math.abs(dxs)>Math.abs(dys)){
-    if(dxs>0&&dx!==-box){dx=box;dy=0;}
-    else if(dxs<0&&dx!==box){dx=-box;dy=0;}
+  if(Math.abs(diffX)>Math.abs(diffY)){
+    ndx=diffX>0?box:-box;
   }else{
-    if(dys>0&&dy!==-box){dx=0;dy=box;}
-    else if(dys<0&&dy!==box){dx=0;dy=-box;}
+    ndy=diffY>0?box:-box;
   }
-});
 
-function playSound(freq){
+  if(dx+ndx===0&&dy+ndy===0)return;
+
+  nextDx=ndx;
+  nextDy=ndy;
+
+  if(!running)startGame();
+},{passive:false});
+
+function beep(freq,duration,type="sine"){
   try{
-    const a=new AudioContext();
-    const o=a.createOscillator();
-    const g=a.createGain();
-    o.frequency.value=freq;
-    o.connect(g);
-    g.connect(a.destination);
-    g.gain.value=0.05;
-    o.start();
-    setTimeout(()=>{o.stop();a.close();},100);
-  }catch{}
+    const audio=new (window.AudioContext||window.webkitAudioContext)();
+    const osc=audio.createOscillator();
+    const gain=audio.createGain();
+    osc.type=type;
+    osc.frequency.value=freq;
+    gain.gain.value=.06;
+    osc.connect(gain);
+    gain.connect(audio.destination);
+    osc.start();
+    setTimeout(()=>{
+      osc.stop();
+      audio.close();
+    },duration);
+  }catch(e){}
 }
 
-resetGame();
+function eatSound(){beep(720,80,"square")}
+function deathSound(){beep(130,220,"sawtooth")}
+function tapSound(){beep(360,45,"sine")}
+function vibrate(p){if(navigator.vibrate)navigator.vibrate(p)}
+
+init();
 </script>
 </body>
 </html>
