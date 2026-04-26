@@ -1,16 +1,12 @@
 {
-  "name": "Snake Meme God Pro",
+  "name": "Snake Meme God Pro MAX",
   "short_name": "Snake",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#020617",
   "theme_color": "#020617",
   "orientation": "portrait",
-  "icons": [
-    {
-      "src": "icon.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
+  "icons":[
+    {"src":"icon.png","sizes":"512x512","type":"image/png"}
   ]
 }
