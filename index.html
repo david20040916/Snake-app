@@ -25,7 +25,12 @@ radial-gradient(circle at 80% 20%, rgba(168,85,247,.35), transparent 30%),
 }
 .app{width:100%;max-width:430px;text-align:center}
 h1{margin:10px;text-shadow:0 0 15px #38bdf8}
-
+if(!run && dx===0 && dy===0){
+  ctx.fillStyle="white";
+  ctx.font="16px Arial";
+  ctx.textAlign="center";
+  ctx.fillText("滑動開始遊戲", SIZE/2, SIZE/2);
+}
 canvas{
 width:min(96vw,430px);
 height:min(96vw,430px);
