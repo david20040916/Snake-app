@@ -1,34 +1,28 @@
-const CACHE_NAME="snake-neon-pro-v2";
+const CACHE_NAME="snake-meme-god-v1";
 
-self.addEventListener("install",event=>{
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache=>{
-      return cache.addAll([
-        "./",
-        "index.html",
-        "manifest.json",
-        "icon.png"
-      ]);
-    })
-  );
-  self.skipWaiting();
+self.addEventListener("install",e=>{
+e.waitUntil(
+caches.open(CACHE_NAME).then(c=>c.addAll([
+"./",
+"index.html",
+"manifest.json",
+"icon.png",
+"snake.png",
+"food.png"
+]))
+);
 });
 
-self.addEventListener("activate",event=>{
-  event.waitUntil(
-    caches.keys().then(keys=>{
-      return Promise.all(
-        keys.filter(key=>key!==CACHE_NAME).map(key=>caches.delete(key))
-      );
-    })
-  );
-  self.clients.claim();
+self.addEventListener("activate",e=>{
+e.waitUntil(
+caches.keys().then(keys=>{
+return Promise.all(keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k)));
+})
+);
 });
 
-self.addEventListener("fetch",event=>{
-  event.respondWith(
-    caches.match(event.request).then(response=>{
-      return response||fetch(event.request);
-    })
-  );
+self.addEventListener("fetch",e=>{
+e.respondWith(
+caches.match(e.request).then(r=>r||fetch(e.request))
+);
 });
